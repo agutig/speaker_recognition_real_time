@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Diarización en tiempo real (Gráficas)</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    canvas { display: block; margin: 1rem auto; }
+  </style>
+</head>
+<body>
+  <h1>Diarización de hablantes</h1>
+  <button id="start">▶️ Iniciar</button>
+
+  <!-- Gráfica de onda -->
+  <canvas id="waveformChart" width="800" height="200"></canvas>
+  <!-- Gráfica de timeline de hablantes -->
+  <canvas id="timelineChart" width="800" height="100"></canvas>
+
+  <!-- Chart.js desde CDN -->
+  <script src="/static/client.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</body>
+</html>
