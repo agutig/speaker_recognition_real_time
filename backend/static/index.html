@@ -11,6 +11,17 @@
 <body>
   <h1>Diarización de hablantes</h1>
   <button id="start">▶️ Iniciar</button>
+  <button id="stop" disabled>⏹️ Detener</button>
+
+  <label for="numSpeakers">Número de hablantes:</label>
+  <input
+    type="number"
+    id="numSpeakers"
+    min="1"
+    max="10"
+    value="4"
+    style="width:4ch"
+  />
 
   <!-- Gráfica de onda -->
   <canvas id="waveformChart" width="800" height="200"></canvas>

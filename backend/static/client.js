@@ -6,14 +6,24 @@ window.addEventListener("DOMContentLoaded", () => {
   // DOM y Chart.js
   //----------------------------------------------------------------
   const startBtn = document.getElementById("start");
+  const stopBtn  = document.getElementById("stop");
   const wfCtx    = document.getElementById("waveformChart").getContext("2d");
   const tlCtx    = document.getElementById("timelineChart").getContext("2d");
+  const numSpeakersI = document.getElementById("numSpeakers");
+  
 
   // Estado global
   let audioCtx, ws, socketReady = false;
   const MAX_CHUNKS   = 10;
   const timelineData = [];
   let   waveformData = [];
+  let waveformHist = new Float32Array(0); 
+  let workletNode;
+
+  const WINDOW_SEC     = 5;        // ⬅️  Ventana visible
+  const CHUNK_SEC      = 1;        //     Duración de cada mensaje Worklet
+  const RES_PER_SEC    = 800;      //     Puntos por segundo en waveform
+  const POINTS_VISIBLE = WINDOW_SEC * RES_PER_SEC;   // 4 000 puntos
 
   // Colores por hablante
   const speakerColors = {
@@ -48,8 +58,18 @@ window.addEventListener("DOMContentLoaded", () => {
   // BOTÓN INICIAR
   //----------------------------------------------------------------
   startBtn.addEventListener("click", async () => {
+
+    startBtn.disabled = true;
+    stopBtn.disabled  = false;
+
+    const nSpeakers = parseInt(numSpeakersI.value, 10) || 4;
+    console.log("▶️ Iniciar con", nSpeakers, "hablantes");
+
+
     //---------------- 1. WebSocket ----------------
-    ws = new WebSocket(`ws://${location.host}/ws/diarize`);
+    ws = new WebSocket(
+      `ws://${location.host}/ws/diarize?ns=${nSpeakers}`
+    );
     ws.onopen  = () => { console.log("🟢 WS abierto"); socketReady = true; };
     ws.onerror = e  => console.error("🔴 WS error:", e);
 
@@ -66,8 +86,9 @@ window.addEventListener("DOMContentLoaded", () => {
     // Mensajes de 1 s desde el Worklet
     worklet.port.onmessage = ({ data: chunk }) => {
       if (!socketReady) return;
-      ws.send(encodeWAV(chunk, audioCtx.sampleRate)); // al backend
-      updateWaveform(chunk);                         // gráfica
+      ws.send(encodeWAV(chunk, audioCtx.sampleRate));
+      appendWaveform(chunk);
+      drawWaveform();                    // gráfica
     };
 
     //---------------- 3. Etiquetas ↓ WebSocket ----
@@ -85,12 +106,92 @@ window.addEventListener("DOMContentLoaded", () => {
       timelineChart.data.datasets[0].backgroundColor =
         timelineData.map(id=>speakerColors[id]||"#999");
       timelineChart.update("none");
+      updateTimeline(dom);
     };
+
   });
+
+  // ─── STOP / RESET ─────────────────────────────────
+  stopBtn.addEventListener("click", () => {
+    console.log("⏹️ Botón Detener pulsado — reiniciando todo");
+    // 1) Cerrar WS
+    if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+    socketReady = false;
+
+    // 2) Detener AudioWorklet y AudioContext
+    if (workletNode) {
+      workletNode.disconnect();
+      workletNode = null;
+    }
+    if (audioCtx) {
+      audioCtx.close();
+      audioCtx = null;
+    }
+
+    // 5) Restaurar botones
+    startBtn.disabled = false;
+    stopBtn.disabled  = true;
+  });
+
 
   //----------------------------------------------------------------
   // HELPERS
   //----------------------------------------------------------------
+
+  function appendWaveform(chunk) {
+    // 1 s de audio → decimar a RES_PER_SEC (=800) puntos
+    const factor = Math.max(1, Math.floor(chunk.length / RES_PER_SEC));
+    const decimated = new Float32Array(RES_PER_SEC);
+    for (let i = 0, j = 0; j < RES_PER_SEC; i += factor, j++) {
+      decimated[j] = chunk[i];
+    }
+  
+    // Añadir y recortar para mantener 5 s
+    const tmp = new Float32Array(waveformHist.length + decimated.length);
+    tmp.set(waveformHist);
+    tmp.set(decimated, waveformHist.length);
+    // si excede los 5 s → descartar el principio
+    if (tmp.length > POINTS_VISIBLE) {
+      waveformHist = tmp.slice(tmp.length - POINTS_VISIBLE);
+    } else {
+      waveformHist = tmp;
+    }
+  }
+
+  function drawWaveform() {
+    const ctx = wfCtx;
+    const W   = ctx.canvas.width;
+    const H   = ctx.canvas.height;
+    ctx.clearRect(0, 0, W, H);
+  
+    const L = waveformHist.length;
+    if (L < 2) return;
+  
+    ctx.beginPath();
+    for (let i = 0; i < L; i++) {
+      const x = (i / (L - 1)) * W;
+      const y = (1 - waveformHist[i]) * (H / 2);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = "#0066cc";
+    ctx.lineWidth   = 1;
+    ctx.stroke();
+  }
+
+  function updateTimeline(dominant) {
+    timelineData.push(dominant);
+    if (timelineData.length > WINDOW_SEC) timelineData.shift();
+  
+    timelineChart.data.labels =
+      timelineData.map((_, i, a) => `${-(a.length - i - 1)} s`);
+    timelineChart.data.datasets[0].data            = timelineData;
+    timelineChart.data.datasets[0].backgroundColor =
+      timelineData.map(id => speakerColors[id] || "#999");
+    timelineChart.update("none");
+  }
+  
+
+
   function dominantSpeaker(labels){
     const c={}; labels.forEach(l=>c[l]=(c[l]||0)+1);
     return +Object.entries(c).sort((a,b)=>b[1]-a[1])[0][0];
@@ -133,4 +234,6 @@ window.addEventListener("DOMContentLoaded", () => {
   }
   function write(view,off,str){ for(let i=0;i<str.length;i++)
       view.setUint8(off+i,str.charCodeAt(i)); }
+
+
 });
