@@ -9,6 +9,10 @@ window.addEventListener("DOMContentLoaded", () => {
   const canvas       = document.getElementById("waveformChart");
   const ctx          = canvas.getContext("2d");
 
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = canvas.clientWidth  * dpr;
+  canvas.height = canvas.clientHeight * dpr;
+  ctx.scale(dpr, dpr);
   // ─── ESTADO GLOBAL ────────────────────────────────
   let audioCtx, analyser, dataArray, bufferLen;
   let ws, socketReady = false;
@@ -25,13 +29,16 @@ window.addEventListener("DOMContentLoaded", () => {
   let waveHist  = new Float32Array(HIST_PTS).fill(0);
   let labelHist = new Uint8Array   (HIST_PTS).fill(0);
 
-  // colores por hablante
+  const css = getComputedStyle(document.documentElement);
+  const WAVE_COLOR = css.getPropertyValue('--wave-stroke').trim();
+  const WAVE_WIDTH = parseFloat(css.getPropertyValue('--wave-width'));
+
   const speakerColors = {
-    0: "#ccc",
-    1: "rgba(255,0,0,0.45)",
-    2: "rgba(0,0,255,0.45)",
-    3: "rgba(0,200,0,0.45)",
-    4: "rgba(255,165,0,0.45)",
+    0: css.getPropertyValue('--spk-0').trim(),
+    1: css.getPropertyValue('--spk-1').trim(),
+    2: css.getPropertyValue('--spk-2').trim(),
+    3: css.getPropertyValue('--spk-3').trim(),
+    4: css.getPropertyValue('--spk-4').trim(),
   };
 
   // ─── START ────────────────────────────────────────
@@ -116,20 +123,23 @@ window.addEventListener("DOMContentLoaded", () => {
       // punto F) dibujar etiqueta como banda superior
       const w = canvas.width / HIST_PTS;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+
       for (let i = 0; i < HIST_PTS; i++) {
-        ctx.fillStyle = speakerColors[labelHist[i]] || "#999";
-        ctx.fillRect(i * w, 0, w, 4);
+        ctx.fillStyle = speakerColors[labelHist[i]] || speakerColors[0];
+        ctx.fillRect(i * w, 0, w, 6);
       }
+      
 
       // punto G) dibujar la onda
       ctx.beginPath();
-      for (let i = 0; i < HIST_PTS; i++) {
-        const x = (i / (HIST_PTS - 1)) * canvas.width;
-        const y = (1 - waveHist[i]) * (canvas.height / 2);
-        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      for (let k = 0; k < HIST_PTS; k++) {
+        const x = (k / (HIST_PTS - 1)) * canvas.width;
+        const y = (1 - waveHist[k]) * (canvas.height / 2);
+        k === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
       }
-      ctx.strokeStyle = "#0066cc";
-      ctx.lineWidth   = 1;
+      ctx.strokeStyle = WAVE_COLOR;
+      ctx.lineWidth   = WAVE_WIDTH;
       ctx.stroke();
 
       animationId = requestAnimationFrame(renderLoop);

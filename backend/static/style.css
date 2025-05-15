@@ -1,0 +1,131 @@
+/* static/style.css */
+
+/* 1) Import y reset suave */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 1rem;
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-color, #1e1e1e);
+  color: var(--text-color, #e0e0e0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden; /* Evita scroll horizontal */
+}
+
+/* 2) Cabecera */
+h1 {
+  margin: 0 0 1rem;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+}
+
+/* 3) Controles */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+.controls label {
+  font-weight: 600;
+  color: #ddd;
+}
+.controls input,
+.controls button {
+  font-size: 1rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #2e2e2e;
+  color: #eee;
+  transition: background 0.2s, border-color 0.2s;
+}
+.controls input {
+  width: 4rem;
+  text-align: center;
+}
+.controls button {
+  cursor: pointer;
+}
+.controls button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.controls button:not(:disabled):hover {
+  background: #3a3a3a;
+  border-color: #555;
+}
+
+/* 4) Layout principal */
+#app {
+  width: 100%;
+  max-width: 1200px;  /* Ancho máximo razonable */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* 5) Canvas general */
+canvas {
+  width: 100% !important;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.7);
+  display: block;
+  margin: 0 auto 1rem;
+}
+
+/* 6) Waveform específico */
+#waveformChart {
+  height: 50vh !important;        /* Ocupa mitad de la altura de la ventana */
+  max-height: 700px !important;   /* Máximo 700px */
+}
+
+/* 7) Variables de tema (modo oscuro neón) */
+:root {
+  /* Colores base */
+  --bg-color: #121212;
+  --text-color: #e0e0e0;
+
+  /* Onda */
+  --wave-stroke: #ffffff;
+  --wave-width: 0.5;
+
+  /* Etiquetas pastel/neón */
+  --spk-0: rgb(255, 255, 255);
+  --spk-1: rgb(255, 105, 180);  /* rosa neón */
+  --spk-2: rgba(0,255,255);    /* cian neón */
+  --spk-3: rgba(119,0,255);    /* violeta neón */
+  --spk-4: rgba(255,160,0);    /* naranja pastel */
+  --spk-5: rgba(80,255,80);    /* verde lima */
+  --spk-6: rgba(255,255,0);    /* amarillo neón */
+  --spk-7: rgba(0,128,255);    /* azul eléctrico */
+  --spk-8: rgba(255,0,0);      /* rojo neón */
+  --spk-9: rgba(255,20,147);   /* hotpink */
+  --spk-10: rgba(0,255,127);   /* spring green */
+  --spk-11: rgba(255,140,0);   /* dark orange */
+  --spk-12: rgba(138,43,226);  /* blue violet */
+  --spk-13: rgba(64,224,208);  /* turquoise */
+  --spk-14: rgba(186,85,211);  /* medium orchid */
+  --spk-15: rgba(173,255,47);  /* green yellow */
+  --spk-16: rgba(255,69,0);    /* orange red */
+  --spk-17: rgba(0,191,255);   /* deep sky blue */
+  --spk-18: rgba(75,0,130);    /* indigo */
+  --spk-19: rgba(255,20,147);  /* deepskypink */
+}
