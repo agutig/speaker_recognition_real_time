@@ -38,77 +38,6 @@ from scipy.optimize import linear_sum_assignment
 
 
 
-def _load_silero() -> Tuple[torch.nn.Module, dict]:
-    """Carga Silero-VAD vía torch.hub y devuelve (modelo, utils)."""
-    model, utils = torch.hub.load(
-        repo_or_dir="snakers4/silero-vad",
-        model="silero_vad",
-        trust_repo=True,
-        force_reload=False,
-    )
-    return model, utils
-
-
-def _ensure_mono(wav: torch.Tensor) -> torch.Tensor:
-    """Si el tensor llega (C, N) → lo convierte a (N,) promediando canales."""
-    if wav.dim() == 2:
-        wav = wav.mean(dim=0)
-    return wav
-
-
-class SpeakerDiarizer:
-    """
-    Pipeline de diarización (VAD → embeddings → clustering jerárquico).
-
-    Parámetros
-    ----------
-    device : {"cpu", "cuda"}
-    n_speakers : int, número conocido de hablantes.
-    chunk_sec : float, duración en segundos de cada ventana.
-    sr : int, frecuencia de muestreo (Silero & ECAPA usan 16 000 Hz).
-    max_embeddings : Optional[int], tope de embeddings en memoria.
-    """
-
-    def __init__(
-        self,
-        *,
-        device: str = "cpu",
-        n_speakers: int,
-        chunk_sec: float = 1.0,
-        sr: int = 16_000,
-        max_embeddings: Optional[int] = None,
-        clustering_kwargs: Optional[dict] = None,
-
-
-    ) -> None:
-        self.device = device
-        self.n_speakers = n_speakers
-        self.chunk_sec = float(chunk_sec)
-        self.sr = int(sr)
-        self.max_embeddings = max_embeddings
-
-        # --- Silero VAD ---
-        self.vad_model, vad_utils = _load_silero()
-        (
-            self._get_speech_timestamps,
-            _save_audio,
-            _read_audio,
-            _,
-            self._collect_chunks,
-        ) = vad_utils
-        self.vad_model.to(self.device)
-
-        # --- ECAPA-TDNN (SpeechBrain) ---
-        self.spkrec = SpeakerRecognition.from_hparams(
-            source="speechbrain/spkrec-ecapa-voxceleb",
-            savedir=Path("pretrained_models") / "ecapa",
-            run_opts={"device": device},
-        )
-        self.spkrec.eval()
-
-
-
-
 
 def _load_silero() -> Tuple[torch.nn.Module, dict]:
     """Carga Silero-VAD vía torch.hub y devuelve (modelo, utils)."""
@@ -187,9 +116,11 @@ class SpeakerDiarizer:
     def _vad_activity(
         self, waveform: torch.Tensor
     ) -> Tuple[bool, List[dict]]:
+        
         """Ejecuta Silero-VAD y devuelve (hay_voz, timestamps)."""
         wav = _ensure_mono(waveform).to(self.device).float()
-        timestamps = self._get_speech_timestamps(wav, self.vad_model, sampling_rate=self.sr)
+        
+        timestamps = self._get_speech_timestamps(wav, self.vad_model, sampling_rate=self.sr, threshold=0.5)
         return bool(timestamps), timestamps
 
 

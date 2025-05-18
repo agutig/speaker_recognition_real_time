@@ -43,6 +43,7 @@ class ConnectionManager:
         self.active[ws] = SpeakerDiarizer(
             device="cpu",
             n_speakers=n_speakers,
+            chunk_sec=1
         )
 
     def disconnect(self, ws: WebSocket) -> None:
